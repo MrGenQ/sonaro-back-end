@@ -6,12 +6,16 @@ use App\Entity\Poke;
 use App\Entity\User;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use phpDocumentor\Reflection\Types\This;
+use phpDocumentor\Reflection\Type;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
+use Symfony\Component\Serializer\Serializer;
 /**
  * @Route("/api", name="api_")
  */
@@ -112,10 +116,33 @@ class PokeController extends AbstractController
 
         return $this->json($pokes);
     }
+    /**
+     * @Route("/poke-import", methods={"POST"})
+     */
+    public function pokeImport(ManagerRegistry $doctrine, Request $request): JsonResponse
+    {
+        $fileName = $request->request->get('file');
+
+        $entityManager = $doctrine->getManager();
+        //var_dump($file_array);
+        foreach(json_decode($fileName) as $pokes){
+            $poke = new Poke();
+            $poke->setSender($pokes->from);
+            $poke->setRecipient($pokes->to);
+            $poke->setDateTime(\DateTime::createFromFormat('Y-m-d', $pokes->date));
+            $entityManager->persist($poke);
+            $entityManager->flush();
+        }
+        return $this->json(['success' => 'importas pavyko']);
+    }
 }
 /*
- * $pokes = $entityManager->getRepository(Poke::class)->findBy(array('recipient' => $request->request->get('oldEmail')));
-        foreach ($pokes as $poke){
-            $poke->setRecipient('tomasino');
-        }
+ $file_array = explode(',', $fileName);
+        $serializer = serialize([1, 2]); //  [1, 2]
+        //$json = json_decode(file_get_contents($fileName));
+        //var_dump($json);
+        $encoders = [new XmlEncoder(), new JsonEncoder()];
+        $normalizers = [new ObjectNormalizer()];
+        $serializer = new Serializer($normalizers, $encoders);
+        $jsonContent = $serializer->serialize($file_array, 'json');
  */
