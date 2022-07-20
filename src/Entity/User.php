@@ -25,10 +25,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'string', length: 255)]
     private $lastName;
-/*
-    #[ORM\ManyToOne(targetEntity: Pokes::class, inversedBy: 'user')]
-    private $poke;
-*/
+
+    #[ORM\Column(type: 'string', length: 255, unique: true)]
+    private $username;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,16 +104,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
-/*
-    public function getPoke(): ?Pokes
+
+    public function getUsername(): ?string
     {
-        return $this->poke;
+        return $this->username;
     }
 
-    public function setPoke(?Pokes $poke): self
+    public function setUsername(string $username): self
     {
-        $this->poke = $poke;
+        $this->username = $username;
 
         return $this;
-    }*/
+    }
 }

@@ -2,9 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\Poke;
-use App\Repository\UserRepository;
-use phpDocumentor\Reflection\Type;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,19 +10,22 @@ use Doctrine\Persistence\ManagerRegistry;
 use App\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\DBAL\Connection;
-use Knp\Component\Pager\PaginatorInterface;
+use Symfony\Component\String\ByteString;
 /**
  * @Route("/api", name="api_")
  */
 class UserController extends AbstractController
 {
-    #[Route('/user', name: 'app_user')]
-    public function index(ManagerRegistry $doctrine): Response
+    #[Route('/user', name: 'app_user', methods: 'POST')]
+    public function getUsers(ManagerRegistry $doctrine, Request $request): Response
     {
+        //$limit = $request->request->get('limit');
         $users = $doctrine
             ->getRepository(User::class)
+            ->findBy(array(), limit: $request->request->get('limit'), offset: $request->request->get('offset'));
+        $lastPage = $doctrine
+            ->getRepository(User::class)
             ->findAll();
-
         $data = [];
 
         foreach ($users as $user) {
@@ -38,11 +38,11 @@ class UserController extends AbstractController
         }
 
 
-        return $this->json($data);
+        return $this->json(['data' => $data, 'page' => $lastPage]);
     }
 
     #[Route('/register', name: 'new_user', methods: "POST")]
-    public function new(ManagerRegistry $doctrine, Request $request): JsonResponse
+    public function register(ManagerRegistry $doctrine, Request $request): JsonResponse
     {
         $entityManager = $doctrine->getManager();
         /*Custom validacija registracijos pateiktiems duomenims validuoti,
@@ -51,10 +51,21 @@ class UserController extends AbstractController
         $validateEmail = $doctrine
             ->getRepository(User::class)
             ->findOneBy(array('email' => $request->request->get('email')));
+        $validateUsername = $doctrine
+            ->getRepository(User::class)
+            ->findOneBy(array('username' => $request->request->get('username')));
 
         $validate = (object) array(
             'none' => true
         );
+        if($validateUsername){
+            $validate->username = 'Šis vartotojo vardas jau yra užimtas';
+            $validate->none = false;
+        }
+        if($request->request->get('username') === ''){
+            $validate->firstName = 'Vartotojo vardas būtinas';
+            $validate->none = false;
+        }
         if($request->request->get('firstName') === ''){
             $validate->firstName = 'Vardas būtinas';
             $validate->none = false;
@@ -91,29 +102,31 @@ class UserController extends AbstractController
         $user->setPassword($request->request->get('password'));
         $user->setFirstName($request->request->get('firstName'));
         $user->setLastName($request->request->get('lastName'));
+        $user->setUsername($request->request->get('username'));
 
         $entityManager->persist($user);
         $entityManager->flush();
 
-        return $this->json(['success' => 'Vartotojas ' .$user->getEmail() .' sėkmingai užregistruotas', 'errors' => '']);
+        return $this->json(['success' => 'Vartotojas ' .$user->getUsername() .' sėkmingai užregistruotas', 'errors' => '']);
     }
     /**
      * @Route("/login", name="login", methods={"POST"})
      */
     public function login(Connection $connection, Request $request, ManagerRegistry $doctrine): Response
     {
-        $email = $request->request->get('email');
+        $username = $request->request->get('username');
         $password = $request->request->get('password');
-        $user = $connection->fetchAssociative("SELECT * FROM user where email = '$email' AND password = '$password'");
+        $user = $connection->fetchAssociative("SELECT * FROM user where username = '$username' AND password = '$password'");
         if (!$user) {
 
-            return $this->json(['error' => 'Blogi prisijungimo duomenys','email' => 'El. paštas neegzistuoja', 'password' => 'Neteisingas slaptažodis', 'user' => $user]);
+            return $this->json(['error' => 'Blogi prisijungimo duomenys','username' => 'Vartotojas neegzistuoja', 'password' => 'Neteisingas slaptažodis', 'user' => $user]);
         }
         $data = [
             'id' => $user['id'],
             'email' => $user['email'],
             'firstName' => $user['first_name'],
             'lastName' => $user['last_name'],
+            'username' => $user['username'],
         ];
         return $this->json(['success' => 'Sėkmingai prisijungta', 'data' => $data]);
     }
@@ -138,7 +151,8 @@ class UserController extends AbstractController
         $users = $doctrine
             ->getRepository(User::class)
             ->findBy(array('firstName' => $name), limit: $request->request->get('limit'), offset: $request->request->get('offset'));
-        $lastpage = $doctrine
+        /* variable $lastPage naudojama kad butu galima žinoti kelintas puslapis paginate bus paskutinis */
+        $lastPage = $doctrine
             ->getRepository(User::class)
             ->findBy(array('firstName' => $name));
         $data = [];
@@ -150,7 +164,7 @@ class UserController extends AbstractController
                 'email' => $user->getEmail(),
             ];
         }
-        return $this->json(['data' => $data, 'page' => $lastpage]);
+        return $this->json(['data' => $data, 'page' => $lastPage]);
     }
     /**
      * @Route("/update-user/{id}")
@@ -167,7 +181,6 @@ class UserController extends AbstractController
         $validateYourEmail = $doctrine
             ->getRepository(User::class)
             ->findOneBy(array('email' => $request->request->get('oldEmail')));
-        //return $this->json($validateYourEmail->email);
 
         $validate = (object) array(
             'none' => true
@@ -217,5 +230,26 @@ class UserController extends AbstractController
             'firstName' => $user->getFirstName(),
             'lastName' => $user->getLastName(),
         ], 'errors' => '']);
+    }
+    /**
+     * @Route("/user-import", methods={"POST"})
+     */
+    public function userImport(ManagerRegistry $doctrine, Request $request): JsonResponse
+    {
+        $responseObj = json_decode($request->getContent(), true);
+        $entityManager = $doctrine->getManager();
+
+        foreach($responseObj as $userInfo){
+            $user = new User();
+            $user->setFirstName($userInfo['first_name']);
+            $user->setLastName($userInfo['last_name']);
+            $user->setEmail($userInfo['email']);
+            $user->setPassword(ByteString::fromRandom(10)->toString());
+            $user->setUsername($userInfo['first_name'] . rand(100, 999));
+            $entityManager->persist($user);
+            $entityManager->flush();
+
+        }
+        return $this->json(['success' => 'Vartotojų importas sėkmingas']);
     }
 }
