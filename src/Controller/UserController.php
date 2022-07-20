@@ -11,6 +11,8 @@ use App\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\String\ByteString;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @Route("/api", name="api_")
  */
@@ -19,7 +21,6 @@ class UserController extends AbstractController
     #[Route('/user', name: 'app_user', methods: 'POST')]
     public function getUsers(ManagerRegistry $doctrine, Request $request): Response
     {
-        //$limit = $request->request->get('limit');
         $users = $doctrine
             ->getRepository(User::class)
             ->findBy(array(), limit: $request->request->get('limit'), offset: $request->request->get('offset'));
@@ -114,12 +115,17 @@ class UserController extends AbstractController
      */
     public function login(Connection $connection, Request $request, ManagerRegistry $doctrine): Response
     {
+
+        $session = new Session();
+        $session->start();
         $username = $request->request->get('username');
         $password = $request->request->get('password');
+
         $user = $connection->fetchAssociative("SELECT * FROM user where username = '$username' AND password = '$password'");
+        $session->set('user', $user);
         if (!$user) {
 
-            return $this->json(['error' => 'Blogi prisijungimo duomenys','username' => 'Vartotojas neegzistuoja', 'password' => 'Neteisingas slaptažodis', 'user' => $user]);
+            return $this->json(['error' => 'Blogi prisijungimo duomenys','username' => 'Vartotojas neegzistuoja', 'password' => 'Neteisingas slaptažodis', 'user' => $session->get('user')]);
         }
         $data = [
             'id' => $user['id'],
@@ -129,6 +135,15 @@ class UserController extends AbstractController
             'username' => $user['username'],
         ];
         return $this->json(['success' => 'Sėkmingai prisijungta', 'data' => $data]);
+    }
+    /**
+     * @Route("/logout", methods={"POST"})
+     */
+    public function logout(RequestStack $requestStack, Request $request): JsonResponse
+    {
+        $session = $requestStack->getSession();
+        $session->clear();
+        return $this->json(['success' => 'Sėkmingai atsijungta', 'data' => ""]);
     }
     /**
      * @Route("/user-by-email", name="user-by-email", methods={"POST"})
@@ -169,7 +184,7 @@ class UserController extends AbstractController
     /**
      * @Route("/update-user/{id}")
      */
-    public function update(ManagerRegistry $doctrine, Request $request, int $id): JsonResponse
+    public function updateUser(ManagerRegistry $doctrine, Request $request, int $id): JsonResponse
     {
         $entityManager = $doctrine->getManager();
         /*Custom validacija vartotojo redagavimo pateiktiems duomenims validuoti,
@@ -229,16 +244,27 @@ class UserController extends AbstractController
             'email' => $user->getEmail(),
             'firstName' => $user->getFirstName(),
             'lastName' => $user->getLastName(),
+            'username' => $user->getUsername(),
         ], 'errors' => '']);
     }
     /**
      * @Route("/user-import", methods={"POST"})
      */
-    public function userImport(ManagerRegistry $doctrine, Request $request): JsonResponse
+    public function userImport(ManagerRegistry $doctrine, Request $request, RequestStack $requestStack): JsonResponse
     {
         $responseObj = json_decode($request->getContent(), true);
         $entityManager = $doctrine->getManager();
-
+        /*
+        Custom validacija patikrinti ar csv faile yra tokių pačių el paštų kaip duomenų bazėje
+        */
+        foreach($responseObj as $userInfo){
+            $validate = $doctrine
+                ->getRepository(User::class)
+                ->findOneBy(array('email' => $userInfo['email']));
+            if($validate){
+                return $this->json(['errors' => 'Importas negalimas, El. paštai turi būti unikalus']);
+            }
+        }
         foreach($responseObj as $userInfo){
             $user = new User();
             $user->setFirstName($userInfo['first_name']);
@@ -252,4 +278,5 @@ class UserController extends AbstractController
         }
         return $this->json(['success' => 'Vartotojų importas sėkmingas']);
     }
+
 }

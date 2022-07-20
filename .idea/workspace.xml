@@ -7,6 +7,7 @@
     <list default="true" id="913872c6-5857-4cda-a75d-20f1db0ab23b" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Controller/PokeController.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Controller/PokeController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Controller/UserController.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Controller/UserController.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -158,7 +159,8 @@
       <workItem from="1658131009780" duration="31070000" />
       <workItem from="1658210377703" duration="12000" />
       <workItem from="1658210400708" duration="28259000" />
-      <workItem from="1658308898322" duration="5681000" />
+      <workItem from="1658308898322" duration="8032000" />
+      <workItem from="1658322136991" duration="9039000" />
     </task>
     <servers />
   </component>

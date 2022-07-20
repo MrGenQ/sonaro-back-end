@@ -18,19 +18,16 @@ use Symfony\Component\Mailer\MailerInterface;
  */
 class PokeController extends AbstractController
 {
-    #[Route('/pokes', name: 'new_poke', methods: "POST")]
-    public function newPoke(MailerInterface $mailer, ManagerRegistry $doctrine, Request $request):Response
+    /**
+     * @Route("/pokes", name="all_pokes")
+     */
+    public function pokes(ManagerRegistry $doctrine):Response
     {
-        $entityManager = $doctrine->getManager();
-        $poke = new Poke();
-        $sender = $request->request->get('sender');
-        $recipient = $request->request->get('recipient');
-        $poke->setSender($sender);
-        $poke->setRecipient($recipient);
-        $entityManager->persist($poke);
-        $entityManager->flush();
+        $pokes = $doctrine
+            ->getRepository(Poke::class)
+            ->findAll();
 
-        return $this->json(['success' => 'Sėkmingai bakstelta']);
+        return $this->json($pokes);
     }
     /**
      * @Route("/get-pokes", name="get_pokes", methods={"POST"})
@@ -97,7 +94,6 @@ class PokeController extends AbstractController
         $end = $request->request->get('end');
         $limit = $request->request->get('limit');
         $offset = $request->request->get('offset');
-        //var_dump($offset);
         $poke = $connection->fetchAllAssociative("SELECT * FROM poke where date_time >= '$start' AND date_time <= '$end' LIMIT $limit OFFSET $offset");
         $lastPage = $connection->fetchAllAssociative("SELECT * FROM poke where date_time >= '$start' AND date_time <= '$end'");
         if(!$poke){
@@ -158,6 +154,25 @@ class PokeController extends AbstractController
 
         $mailer->send($email);
 
-        return $this->json(['success' => 'Bakstelta ' .$user->getFirstName() .' ' .$user->getLastName() .'.' .' Laiškas išsiųstas ' .$request->request->get('recipient') .' el. paštu']);
+        return $this->json(['success' => 'Laiškas išsiųstas ' .$request->request->get('recipient') .' el. paštu']);
+    }
+    /**
+     * @Route("/poke-user", name="new_poke", methods={"POST"})
+     */
+    public function newPoke(ManagerRegistry $doctrine, Request $request):Response
+    {
+        $sender = $request->request->get('sender');
+        $recipient = $request->request->get('recipient');
+        if($sender === $recipient){
+            return $this->json(['error' => 'Negalima bakstelti savęs']);
+        }
+        $entityManager = $doctrine->getManager();
+        $poke = new Poke();
+        $poke->setSender($sender);
+        $poke->setRecipient($recipient);
+        $entityManager->persist($poke);
+        $entityManager->flush();
+
+        return $this->json(['success' => 'Sėkmingai bakstelta', 'data' => $poke->getId()]);
     }
 }
