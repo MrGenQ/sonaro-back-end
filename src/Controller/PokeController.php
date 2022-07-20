@@ -30,7 +30,7 @@ class PokeController extends AbstractController
         $entityManager->persist($poke);
         $entityManager->flush();
 
-        return $this->json(['success' => 'sėkmingai bakstelta']);
+        return $this->json(['success' => 'Sėkmingai bakstelta']);
     }
     /**
      * @Route("/get-pokes", name="get_pokes", methods={"POST"})
@@ -101,7 +101,7 @@ class PokeController extends AbstractController
         $poke = $connection->fetchAllAssociative("SELECT * FROM poke where date_time >= '$start' AND date_time <= '$end' LIMIT $limit OFFSET $offset");
         $lastPage = $connection->fetchAllAssociative("SELECT * FROM poke where date_time >= '$start' AND date_time <= '$end'");
         if(!$poke){
-            return $this->json(['warning' => 'pasirinktom dienom poke nėra']);
+            return $this->json(['warning' => 'Pasirinktomis dienomis poke nėra']);
         }
 
         return $this->json(['data' => $poke, 'page' => $lastPage]);
@@ -132,7 +132,7 @@ class PokeController extends AbstractController
             $entityManager->persist($poke);
             $entityManager->flush();
         }
-        return $this->json(['success' => 'importas pavyko']);
+        return $this->json(['success' => 'Importas pavyko']);
     }
     /**
      * @Route("/send-email", methods={"POST"})
@@ -158,6 +158,6 @@ class PokeController extends AbstractController
 
         $mailer->send($email);
 
-        return $this->json(['success' => 'Laiškas išsiųstas ' . $request->request->get('recipient') . ' el. paštu']);
+        return $this->json(['success' => 'Bakstelta ' .$user->getFirstName() .' ' .$user->getLastName() .'.' .' Laiškas išsiųstas ' .$request->request->get('recipient') .' el. paštu']);
     }
 }
