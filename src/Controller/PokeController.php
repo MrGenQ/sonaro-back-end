@@ -21,6 +21,10 @@ class PokeController extends AbstractController
     /**
      * @Route("/pokes", name="all_pokes")
      */
+    /*
+     POST Metodu
+     Grąžina visus poke iš duomenų bazės
+     */
     public function pokes(ManagerRegistry $doctrine):Response
     {
         $pokes = $doctrine
@@ -31,6 +35,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/get-pokes", name="get_pokes", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Grąžina kiek vartotojas turi poke
      */
     public function pokeCount(ManagerRegistry $doctrine, Connection $connection, Request $request):Response
     {
@@ -43,6 +51,10 @@ class PokeController extends AbstractController
     /**
      * @Route("/get-user-pokes", name="get_user_pokes", methods={"POST"})
      */
+    /*
+     POST Metodu
+     Grąžina pasirinkto vartojo poke iš duomenų bazės
+     */
     public function userPokes(Connection $connection, Request $request):JsonResponse
     {
         $limit = $request->request->get('limit');
@@ -52,6 +64,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/get-all-pokes", name="get_all_pokes", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Grąžina pasirinkto puslapio poke iš duomenų bazės
      */
     public function allPokes(ManagerRegistry $doctrine, Request $request):JsonResponse
     {
@@ -77,6 +93,10 @@ class PokeController extends AbstractController
     /**
      * @Route("/filter-pokes-by-name", name="filter-pokes-by-email", methods={"POST"})
      */
+    /*
+     POST Metodu
+     Grąžina vartotoją pagal pateiktą vardą
+     */
     public function userByName(ManagerRegistry $doctrine, Request $request): Response
     {
         $name = $request->request->get('name');
@@ -87,6 +107,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/filter-pokes-from", name="filter-pokes-from", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Grąžina visus poke kurie atitinka nuostatytas datas (nuo iki)
      */
     public function pokesFrom(Request $request, Connection $connection): Response
     {
@@ -105,7 +129,11 @@ class PokeController extends AbstractController
     /**
      * @Route("/update-poke/{email}")
      */
-    public function update(Connection $connection, Request $request, string $email): JsonResponse
+    /*
+     POST Metodu
+     Atnaujina poke kai vartotojas pasikeičia savo email duomenis
+     */
+    public function updatePoke(Connection $connection, Request $request, string $email): JsonResponse
     {
         $newEmail = $request->request->get('newEmail');
         $pokes = $connection->fetchAllAssociative("UPDATE poke SET recipient = '$newEmail' where recipient = '$email'");
@@ -114,6 +142,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/poke-import", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     importuoja poke is json duomenų ir sukuria juos duomenų bazėje
      */
     public function pokeImport(ManagerRegistry $doctrine, Request $request): JsonResponse
     {
@@ -132,6 +164,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/send-email", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Išsiunčia el. laišką kai kuris nors vartotojas yra baksnojamas
      */
     public function sendEmail(MailerInterface $mailer, Request $request, ManagerRegistry $doctrine): Response
     {
@@ -158,6 +194,10 @@ class PokeController extends AbstractController
     }
     /**
      * @Route("/poke-user", name="new_poke", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Sukuria naują poke, neleidžia vartotojui bakstelt savęs (grąžina error)
      */
     public function newPoke(ManagerRegistry $doctrine, Request $request):Response
     {

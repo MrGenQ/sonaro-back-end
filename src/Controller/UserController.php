@@ -18,7 +18,13 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class UserController extends AbstractController
 {
-    #[Route('/user', name: 'app_user', methods: 'POST')]
+    /**
+     * @Route("/user", name="app_user", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Grąžina puslapiuotus vartotojus iš duomenų bazės
+     */
     public function getUsers(ManagerRegistry $doctrine, Request $request): Response
     {
         $users = $doctrine
@@ -41,8 +47,13 @@ class UserController extends AbstractController
 
         return $this->json(['data' => $data, 'page' => $lastPage]);
     }
-
-    #[Route('/register', name: 'new_user', methods: "POST")]
+    /**
+     * @Route("/register", name="register", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Užregistruoja naują vartotoją jeigu nerandama validacijos klaidų
+     */
     public function register(ManagerRegistry $doctrine, Request $request): JsonResponse
     {
         $entityManager = $doctrine->getManager();
@@ -113,9 +124,12 @@ class UserController extends AbstractController
     /**
      * @Route("/login", name="login", methods={"POST"})
      */
+    /*
+     POST Metodu
+     Prisijungimo funkcija, bei naujos php sesijos kurimas ir user informacijos patalpinimas
+     */
     public function login(Connection $connection, Request $request, ManagerRegistry $doctrine): Response
     {
-
         $session = new Session();
         $session->start();
         $username = $request->request->get('username');
@@ -139,6 +153,10 @@ class UserController extends AbstractController
     /**
      * @Route("/logout", methods={"POST"})
      */
+    /*
+     POST Metodu
+     Atsijungimo funkcija, bei iš php sesijos ištrina user informaciją
+     */
     public function logout(RequestStack $requestStack, Request $request): JsonResponse
     {
         $session = $requestStack->getSession();
@@ -147,6 +165,10 @@ class UserController extends AbstractController
     }
     /**
      * @Route("/user-by-email", name="user-by-email", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Atsiustą el. pašto adresą paverčia vardu ir pavarde
      */
     public function userByEmail(ManagerRegistry $doctrine, Request $request): Response
     {
@@ -159,6 +181,10 @@ class UserController extends AbstractController
     }
     /**
      * @Route("/user-search", name="user-search", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Grąžina vartotoją kuris atitinka pateiktą vardą iš frontend
      */
     public function userSearch(ManagerRegistry $doctrine, Request $request): Response
     {
@@ -183,6 +209,11 @@ class UserController extends AbstractController
     }
     /**
      * @Route("/update-user/{id}")
+     */
+    /*
+     POST Metodu
+     Atnaujina vartotojo duomenis pagal suvestus duomenis fronend
+     Validuoja gautus duomenis, jeigu validacijos nepraeina grąžina error
      */
     public function updateUser(ManagerRegistry $doctrine, Request $request, int $id): JsonResponse
     {
@@ -249,6 +280,11 @@ class UserController extends AbstractController
     }
     /**
      * @Route("/user-import", methods={"POST"})
+     */
+    /*
+     POST Metodu
+     Importuoja vartotojus iš CSV duomenų gautų iš frontend
+     Validuoja ar pateikti email neegzistuoja duomenų bazėje
      */
     public function userImport(ManagerRegistry $doctrine, Request $request, RequestStack $requestStack): JsonResponse
     {
