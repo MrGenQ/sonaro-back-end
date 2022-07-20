@@ -6,20 +6,20 @@ use App\Entity\Poke;
 use App\Entity\User;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use phpDocumentor\Reflection\Type;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Annotation\Route;
-
+use Symfony\Component\Mailer\MailerInterface;
 /**
  * @Route("/api", name="api_")
  */
 class PokeController extends AbstractController
 {
     #[Route('/pokes', name: 'new_poke', methods: "POST")]
-    public function poke(ManagerRegistry $doctrine, Request $request):Response
+    public function newPoke(MailerInterface $mailer, ManagerRegistry $doctrine, Request $request):Response
     {
         $entityManager = $doctrine->getManager();
         $poke = new Poke();
@@ -29,12 +29,13 @@ class PokeController extends AbstractController
         $poke->setRecipient($recipient);
         $entityManager->persist($poke);
         $entityManager->flush();
+
         return $this->json(['success' => 'sėkmingai bakstelta']);
     }
     /**
      * @Route("/get-pokes", name="get_pokes", methods={"POST"})
      */
-    public function count(ManagerRegistry $doctrine, Request $request):Response
+    public function pokeCount(ManagerRegistry $doctrine, Connection $connection, Request $request):Response
     {
         $email = $request->request->get('email');
         $pokes = $doctrine
@@ -45,13 +46,11 @@ class PokeController extends AbstractController
     /**
      * @Route("/get-user-pokes", name="get_user_pokes", methods={"POST"})
      */
-    public function userPokes(ManagerRegistry $doctrine, Request $request):JsonResponse
+    public function userPokes(Connection $connection, Request $request):JsonResponse
     {
         $limit = $request->request->get('limit');
         $email = $request->request->get('email');
-        $pokes = $doctrine
-            ->getRepository(Poke::class)
-            ->findBy(array('recipient' => $email), limit: $limit);
+        $pokes = $connection->fetchAllAssociative("SELECT * FROM poke  where recipient LIKE '$email' LIMIT $limit");
         return $this->json($pokes);
     }
     /**
@@ -134,5 +133,31 @@ class PokeController extends AbstractController
             $entityManager->flush();
         }
         return $this->json(['success' => 'importas pavyko']);
+    }
+    /**
+     * @Route("/send-email", methods={"POST"})
+     */
+    public function sendEmail(MailerInterface $mailer, Request $request, ManagerRegistry $doctrine): Response
+    {
+        $poker = $doctrine
+            ->getRepository(Poke::class)
+            ->findOneBy(array('sender' => $request->request->get('sender')));
+        $user = $doctrine
+            ->getRepository(User::class)
+            ->findOneBy(array('email' => $poker->getSender()));
+        $email = (new Email())
+            ->from($request->request->get('sender'))
+            ->to($request->request->get('recipient'))
+
+            ->subject('Time for Symfony Mailer!')
+            ->text('Sending emails is fun again!')
+            ->html("
+                    <h4>Sveiki,</h4>
+                    <p>{$user->getFirstName()} {$user->getLastName()} pokina tave</p>
+                   ");
+
+        $mailer->send($email);
+
+        return $this->json(['success' => 'Laiškas išsiųstas ' . $request->request->get('recipient') . ' el. paštu']);
     }
 }
